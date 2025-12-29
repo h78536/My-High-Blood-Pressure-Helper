@@ -3,9 +3,10 @@
 import type { BloodPressureReading } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { AreaChart, CartesianGrid, XAxis, Area, Tooltip } from 'recharts';
+import { AreaChart, CartesianGrid, XAxis, Area, Tooltip as RechartsTooltip } from 'recharts';
 import {
   ChartContainer,
+  ChartTooltip,
   ChartTooltipContent,
   ChartConfig,
   ChartLegend,
@@ -19,6 +20,9 @@ interface ReadingsChartProps {
 function toDate(timestamp: any): Date {
   if (timestamp && typeof timestamp.toDate === 'function') {
     return timestamp.toDate();
+  }
+  if (timestamp instanceof Date) {
+    return timestamp;
   }
   return new Date(timestamp);
 }
@@ -51,6 +55,7 @@ export function ReadingsChart({ data }: ReadingsChartProps) {
     <div className="h-[350px] w-full">
       <ChartContainer config={chartConfig} className="h-full w-full">
         <AreaChart
+          accessibilityLayer
           data={chartData}
           margin={{
             top: 10,
@@ -59,45 +64,97 @@ export function ReadingsChart({ data }: ReadingsChartProps) {
             bottom: 0,
           }}
         >
-          <CartesianGrid vertical={false} strokeDasharray="3 3" />
+          <CartesianGrid vertical={false} />
           <XAxis
             dataKey="name"
             tickLine={false}
             axisLine={false}
             tickMargin={8}
-            tickFormatter={(value, index) => {
-              if (chartData.length > 10 && index % Math.floor(chartData.length / 5) !== 0) {
-                return '';
+            tickFormatter={(value) => {
+              // This logic simplifies the tick labels for better readability
+              try {
+                const date = new Date(chartData.find(d => d.name === value)?.timestamp);
+                if (isNaN(date.getTime())) return value.split(',')[0];
+                return format(date, "M月d日");
+              } catch (e) {
+                return value.split(',')[0];
               }
-              return value.split(',')[0];
             }}
+            interval="preserveStartEnd"
           />
           <ChartTooltip
             cursor={false}
-            content={<ChartTooltipContent indicator="dot" />}
+            content={<ChartTooltipContent 
+              indicator="dot" 
+              labelFormatter={(label, payload) => {
+                if (payload && payload.length > 0) {
+                  const item = payload[0];
+                  return format(new Date(item.payload.timestamp), 'yyyy-MM-dd HH:mm', { locale: zhCN });
+                }
+                return label;
+              }}
+            />}
           />
           <ChartLegend content={<ChartLegendContent />} />
+          <defs>
+            <linearGradient id="fillSystolic" x1="0" y1="0" x2="0" y2="1">
+              <stop
+                offset="5%"
+                stopColor="var(--color-systolic)"
+                stopOpacity={0.8}
+              />
+              <stop
+                offset="95%"
+                stopColor="var(--color-systolic)"
+                stopOpacity={0.1}
+              />
+            </linearGradient>
+            <linearGradient id="fillDiastolic" x1="0" y1="0" x2="0" y2="1">
+              <stop
+                offset="5%"
+                stopColor="var(--color-diastolic)"
+                stopOpacity={0.8}
+              />
+              <stop
+                offset="95%"
+                stopColor="var(--color-diastolic)"
+                stopOpacity={0.1}
+              />
+            </linearGradient>
+             <linearGradient id="fillHeartRate" x1="0" y1="0" x2="0" y2="1">
+              <stop
+                offset="5%"
+                stopColor="var(--color-heartRate)"
+                stopOpacity={0.4}
+              />
+              <stop
+                offset="95%"
+                stopColor="var(--color-heartRate)"
+                stopOpacity={0.05}
+              />
+            </linearGradient>
+          </defs>
           <Area
             dataKey="systolic"
-            type="monotone"
-            fill="var(--color-systolic)"
-            fillOpacity={0.4}
+            type="natural"
+            fill="url(#fillSystolic)"
+            fillOpacity={1}
             stroke="var(--color-systolic)"
             stackId="1"
           />
           <Area
             dataKey="diastolic"
-            type="monotone"
-            fill="var(--color-diastolic)"
-            fillOpacity={0.4}
+            type="natural"
+            fill="url(#fillDiastolic)"
+            fillOpacity={1}
             stroke="var(--color-diastolic)"
             stackId="2"
           />
            <Area
             dataKey="heartRate"
-            type="monotone"
-            fill="var(--color-heartRate)"
-            fillOpacity={0.2}
+            type="natural"
+            fill="url(#fillHeartRate)"
+            fillOpacity={1}
             stroke="var(--color-heartRate)"
             stackId="3"
           />

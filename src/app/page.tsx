@@ -1,7 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { AddReadingDialog } from '@/components/add-reading-dialog';
+import { ReadingsChart } from '@/components/readings-chart';
 import { ReadingsTable } from '@/components/readings-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AiInsightsCard from '@/components/ai-insights-card';
@@ -13,15 +13,6 @@ import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { BloodPressureReading } from '@/lib/definitions';
-import { Skeleton } from '@/components/ui/skeleton';
-
-// Dynamically import the chart component with SSR turned off.
-// This is the key change to ensure 'recharts' is not part of the initial server bundle.
-const ReadingsChart = dynamic(() => import('@/components/readings-chart').then(mod => mod.ReadingsChart), {
-  ssr: false,
-  loading: () => <div className="h-[350px] w-full p-4"><Skeleton className="h-full w-full" /></div>,
-});
-
 
 export default function DashboardPage() {
   const auth = useAuth();
@@ -44,15 +35,7 @@ export default function DashboardPage() {
 
   const { data: readings, isLoading: areReadingsLoading } = useCollection<BloodPressureReading>(readingsQuery);
   
-  if (isUserLoading || (areReadingsLoading && !readings)) {
-    return (
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">正在加载您的健康数据...</p>
-      </div>
-    );
-  }
-  
+  const isLoading = isUserLoading || areReadingsLoading;
   const sortedReadings = readings || [];
 
   return (
@@ -69,7 +52,14 @@ export default function DashboardPage() {
         </div>
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
-        {sortedReadings.length > 0 ? (
+        {isLoading ? (
+           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="mt-4 text-muted-foreground">正在加载您的健康数据...</p>
+            </div>
+           </div>
+        ) : sortedReadings.length > 0 ? (
           <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-4">
             <div className="lg:col-span-4">
               <Card>
@@ -77,7 +67,7 @@ export default function DashboardPage() {
                   <CardTitle>血压趋势</CardTitle>
                 </CardHeader>
                 <CardContent className="pl-0 md:pl-2">
-                  <ReadingsChart data={sortedReadings} />
+                   <ReadingsChart data={sortedReadings} />
                 </CardContent>
               </Card>
             </div>
