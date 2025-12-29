@@ -15,9 +15,10 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import type { BloodPressureReading } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Dynamically import the chart component to reduce the initial bundle size.
+// Dynamically import the chart component with SSR turned off.
+// This is the key change to ensure 'recharts' is not part of the initial server bundle.
 const ReadingsChart = dynamic(() => import('@/components/readings-chart').then(mod => mod.ReadingsChart), {
-  ssr: false, // This chart is not critical for SEO and can be client-side rendered.
+  ssr: false,
   loading: () => <div className="h-[350px] w-full p-4"><Skeleton className="h-full w-full" /></div>,
 });
 
