@@ -8,12 +8,12 @@ import { EmptyState } from '@/components/empty-state';
 import { HeartPulse, Loader2 } from 'lucide-react';
 import { useAuth, useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
-import { useEffect, Suspense } from 'react';
+import { useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { BloodPressureReading } from '@/lib/definitions';
 import dynamic from 'next/dynamic';
+import { ReadingsTable } from '@/components/readings-table';
 
-// Dynamically import the chart component with SSR disabled
 const ReadingsChart = dynamic(() => import('@/components/readings-chart').then(mod => mod.ReadingsChart), {
   ssr: false,
   loading: () => (
@@ -22,16 +22,6 @@ const ReadingsChart = dynamic(() => import('@/components/readings-chart').then(m
     </div>
   ),
 });
-
-const ReadingsTable = dynamic(() => import('@/components/readings-table').then(mod => mod.ReadingsTable), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-[200px] w-full items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  ),
-});
-
 
 export default function DashboardPage() {
   const auth = useAuth();

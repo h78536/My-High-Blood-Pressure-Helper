@@ -3,14 +3,14 @@
 import type { BloodPressureReading } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { AreaChart, CartesianGrid, XAxis, Area, Tooltip as RechartsTooltip, Legend, YAxis, ResponsiveContainer } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   ChartConfig,
   ChartLegend,
-  ChartLegendContent
+  ChartLegendContent,
 } from '@/components/ui/chart';
 
 interface ReadingsChartProps {
@@ -44,7 +44,7 @@ const chartConfig = {
 
 export function ReadingsChart({ data }: ReadingsChartProps) {
   const chartData = data
-    .map(reading => ({
+    .map((reading) => ({
       ...reading,
       timestamp: toDate(reading.timestamp),
       name: format(toDate(reading.timestamp), 'MMM d', { locale: zhCN }),
@@ -80,20 +80,22 @@ export function ReadingsChart({ data }: ReadingsChartProps) {
         />
         <ChartTooltip
           cursor={false}
-          content={<ChartTooltipContent 
-            indicator="dot" 
-            labelFormatter={(label, payload) => {
-              if (payload && payload.length > 0) {
-                const item = payload[0];
-                try {
-                  return format(new Date(item.payload.timestamp), 'yyyy-MM-dd HH:mm', { locale: zhCN });
-                } catch(e) {
-                  return label;
+          content={
+            <ChartTooltipContent
+              indicator="dot"
+              labelFormatter={(label, payload) => {
+                if (payload && payload.length > 0) {
+                  const item = payload[0];
+                  try {
+                    return format(new Date(item.payload.timestamp), 'yyyy-MM-dd HH:mm', { locale: zhCN });
+                  } catch (e) {
+                    return label;
+                  }
                 }
-              }
-              return label;
-            }}
-          />}
+                return label;
+              }}
+            />
+          }
         />
         <ChartLegend content={<ChartLegendContent />} />
         <defs>
@@ -121,7 +123,7 @@ export function ReadingsChart({ data }: ReadingsChartProps) {
               stopOpacity={0.1}
             />
           </linearGradient>
-           <linearGradient id="fillHeartRate" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="fillHeartRate" x1="0" y1="0" x2="0" y2="1">
             <stop
               offset="5%"
               stopColor="var(--color-heartRate)"
@@ -138,7 +140,6 @@ export function ReadingsChart({ data }: ReadingsChartProps) {
           dataKey="systolic"
           type="natural"
           fill="url(#fillSystolic)"
-          fillOpacity={1}
           stroke="var(--color-systolic)"
           stackId="1"
         />
@@ -146,15 +147,13 @@ export function ReadingsChart({ data }: ReadingsChartProps) {
           dataKey="diastolic"
           type="natural"
           fill="url(#fillDiastolic)"
-          fillOpacity={1}
           stroke="var(--color-diastolic)"
           stackId="2"
         />
-         <Area
+        <Area
           dataKey="heartRate"
           type="natural"
           fill="url(#fillHeartRate)"
-          fillOpacity={1}
           stroke="var(--color-heartRate)"
           stackId="3"
         />
