@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "BloodPressureReading": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BloodPressureReading",
+      "type": "object",
+      "description": "Represents a single blood pressure reading.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the blood pressure reading."
+        },
+        "systolic": {
+          "type": "number",
+          "description": "Systolic blood pressure reading (mmHg)."
+        },
+        "diastolic": {
+          "type": "number",
+          "description": "Diastolic blood pressure reading (mmHg)."
+        },
+        "heartRate": {
+          "type": "number",
+          "description": "Heart rate (beats per minute)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of the blood pressure reading.",
+          "format": "date-time"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N BloodPressureReading)"
+        }
+      },
+      "required": [
+        "id",
+        "systolic",
+        "diastolic",
+        "heartRate",
+        "timestamp",
+        "userId"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. User documents are created upon user authentication.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/bloodPressureReadings/{readingId}",
+        "definition": {
+          "entityName": "BloodPressureReading",
+          "schema": {
+            "$ref": "#/backend/entities/BloodPressureReading"
+          },
+          "description": "Stores blood pressure readings for a specific user. The `userId` field inside the `BloodPressureReading` document ensures that the reading is associated with the correct user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "readingId",
+              "description": "The unique identifier of the blood pressure reading."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure secure and scalable data management for the BP Monitor application, adhering to the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs.\n\n**Authorization Independence:** Blood pressure readings are stored as subcollections of user documents (`/users/{userId}/bloodPressureReadings/{readingId}`). This inherently enforces ownership. No `get()` calls are needed in the security rules since access is determined solely by the path.\n\n**Clarity of Intent:** The hierarchical path `/users/{userId}/bloodPressureReadings/{readingId}` clearly indicates that blood pressure readings are owned by the user specified in the path. The `userId` field within the `BloodPressureReading` document reinforces this ownership.\n\n**DBAC (No Custom Claims):** Authorization relies exclusively on `request.auth.uid` and the path structure. No custom claims are used. The path-based ownership model ensures that only the authenticated user (whose `uid` matches the `userId` in the path) can access their own blood pressure readings.\n\n**QAPs (Rules are not Filters):** The structure supports secure `list` operations. Security rules can efficiently filter blood pressure readings based on the `userId` in the path, ensuring that users can only list readings belonging to them. The homogeneous security posture within the `/users/{userId}/bloodPressureReadings` collection means all documents share the same access requirements, simplifying rules and preventing unauthorized access.\n\n**Invariants:** The structure supports data integrity. The `userId` field inside the `BloodPressureReading` document ensures that the reading is always associated with the correct user, even if the document ID is changed. Timestamps are stored directly in the document for easy querying and analysis.\n\nThe design utilizes path-based ownership for `BloodPressureReading` data, placing it under the `/users/{userId}` collection. This approach avoids the need for complex authorization logic based on document content, facilitating straightforward and secure security rules. The structure inherently separates user data, preventing unintended data exposure.\n\nIn summary, this Firestore structure promotes a secure, scalable, and debuggable environment for the BP Monitor application by prioritizing authorization independence, leveraging path-based ownership, and avoiding complex authorization dependencies."
+  }
+}

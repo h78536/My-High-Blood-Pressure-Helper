@@ -1,0 +1,117 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model. All data is considered private and is only accessible by the user who owns it. There are no public or shared collections.
+ *
+ * Data Structure: All user-specific data, including blood pressure readings, is stored in a subcollection nested under a user's primary document. The structure `/users/{userId}/bloodPressureReadings/{readingId}` ensures that a user's data is logically and securely grouped within their own data tree.
+ *
+ * Key Security Decisions:
+ * - User Isolation: A user can only ever access documents within their own `/users/{userId}` path.
+ * - No User Listing: It is impossible for any client to list all documents in the top-level `/users` collection, preventing user enumeration.
+ * - Path-Based Security: Authorization is primarily determined by matching the user's authentication UID with the `{userId}` wildcard in the document path. This is a highly performant and secure pattern.
+ * - Default Deny: All operations are denied by default and are only explicitly allowed through specific rules.
+ *
+ * Denormalization for Authorization: The data model is inherently designed for simple, performant rules. By nesting `bloodPressureReadings` under a specific user, we determine ownership directly from the path without needing extra database reads (`get()` calls). The `BloodPressureReading` document also contains a `userId` field, which is validated against the path to ensure relational integrity.
+ *
+ * Structural Segregation: This pattern is not required as the application does not mix public and private data. All data is private to the user.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * This is the primary function for establishing document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks for ownership on an existing document. Used for update/delete.
+     * Ensures the operation targets a document that actually exists.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    // ----------------------------------------------------------------------
+    // User Profile Rules
+    // ----------------------------------------------------------------------
+
+    /**
+     * @description Controls access to a user's own profile document.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own user document: `request.auth.uid == userId`.
+     * @deny (get) An authenticated user trying to read another user's profile: `request.auth.uid != userId`.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
+    match /users/{userId} {
+      /**
+       * On create, validates that the document's internal `id` matches the document's path `userId`.
+       * This enforces relational integrity from the moment of creation.
+       */
+      function hasValidUserDataOnCreate(userId) {
+        return request.resource.data.id == userId;
+      }
+
+      /**
+       * On update, ensures the document's internal `id` is immutable.
+       * This prevents re-assigning the user profile to a different user.
+       */
+      function hasImmutableUserDataOnUpdate() {
+        return request.resource.data.id == resource.data.id;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // CRITICAL: Prevents listing all users in the application.
+      allow create: if isOwner(userId) && hasValidUserDataOnCreate(userId);
+      allow update: if isExistingOwner(userId) && hasImmutableUserDataOnUpdate();
+      allow delete: if false; // User profiles cannot be deleted by clients.
+    }
+
+    // ----------------------------------------------------------------------
+    // Blood Pressure Subcollection Rules
+    // ----------------------------------------------------------------------
+
+    /**
+     * @description Controls access to blood pressure readings, which are private to each user.
+     * @path /users/{userId}/bloodPressureReadings/{readingId}
+     * @allow (create) An authenticated user adding a reading to their own subcollection: `request.auth.uid == userId`.
+     * @deny (list) An authenticated user trying to list readings for another user: `request.auth.uid != userId`.
+     * @principle Enforces document ownership for all operations within a user-specific subcollection.
+     */
+    match /users/{userId}/bloodPressureReadings/{readingId} {
+      /**
+       * On create, validates that the reading's internal `userId` field matches the parent user's ID.
+       * This creates a permanent, verifiable link to the owner.
+       */
+      function hasValidReadingDataOnCreate(userId) {
+        return request.resource.data.userId == userId;
+      }
+
+      /**
+       * On update, ensures the reading's internal `userId` is immutable.
+       * This prevents a reading from ever being re-assigned to another user.
+       */
+      function hasImmutableReadingDataOnUpdate() {
+        return request.resource.data.userId == resource.data.userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidReadingDataOnCreate(userId);
+      allow update: if isExistingOwner(userId) && hasImmutableReadingDataOnUpdate();
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
