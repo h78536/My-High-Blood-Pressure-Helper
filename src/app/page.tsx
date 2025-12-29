@@ -1,8 +1,6 @@
 'use client';
 
 import { AddReadingDialog } from '@/components/add-reading-dialog';
-import { ReadingsChart } from '@/components/readings-chart';
-import { ReadingsTable } from '@/components/readings-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AiInsightsCard from '@/components/ai-insights-card';
 import LatestReadingCard from '@/components/latest-reading-card';
@@ -10,9 +8,30 @@ import { EmptyState } from '@/components/empty-state';
 import { HeartPulse, Loader2 } from 'lucide-react';
 import { useAuth, useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { BloodPressureReading } from '@/lib/definitions';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the chart component with SSR disabled
+const ReadingsChart = dynamic(() => import('@/components/readings-chart').then(mod => mod.ReadingsChart), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[350px] w-full items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  ),
+});
+
+const ReadingsTable = dynamic(() => import('@/components/readings-table').then(mod => mod.ReadingsTable), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[200px] w-full items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  ),
+});
+
 
 export default function DashboardPage() {
   const auth = useAuth();
@@ -35,8 +54,17 @@ export default function DashboardPage() {
 
   const { data: readings, isLoading: areReadingsLoading } = useCollection<BloodPressureReading>(readingsQuery);
   
-  const isLoading = isUserLoading || areReadingsLoading;
+  const isLoading = isUserLoading || (areReadingsLoading && !readings);
   const sortedReadings = readings || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">正在加载您的健康数据...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -52,14 +80,7 @@ export default function DashboardPage() {
         </div>
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
-        {isLoading ? (
-           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="mt-4 text-muted-foreground">正在加载您的健康数据...</p>
-            </div>
-           </div>
-        ) : sortedReadings.length > 0 ? (
+        {sortedReadings.length > 0 ? (
           <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-4">
             <div className="lg:col-span-4">
               <Card>
