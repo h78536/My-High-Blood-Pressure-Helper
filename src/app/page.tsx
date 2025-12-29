@@ -1,7 +1,7 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { AddReadingDialog } from '@/components/add-reading-dialog';
-import { ReadingsChart } from '@/components/readings-chart';
 import { ReadingsTable } from '@/components/readings-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AiInsightsCard from '@/components/ai-insights-card';
@@ -13,6 +13,14 @@ import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { BloodPressureReading } from '@/lib/definitions';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Dynamically import the chart component to reduce the initial bundle size.
+const ReadingsChart = dynamic(() => import('@/components/readings-chart').then(mod => mod.ReadingsChart), {
+  ssr: false, // This chart is not critical for SEO and can be client-side rendered.
+  loading: () => <div className="h-[350px] w-full p-4"><Skeleton className="h-full w-full" /></div>,
+});
+
 
 export default function DashboardPage() {
   const auth = useAuth();
