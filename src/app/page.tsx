@@ -14,14 +14,17 @@ import type { BloodPressureReading } from '@/lib/definitions';
 import dynamic from 'next/dynamic';
 import { ReadingsTable } from '@/components/readings-table';
 
-const ReadingsChart = dynamic(() => import('@/components/readings-chart').then(mod => mod.ReadingsChart), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-[350px] w-full items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  ),
-});
+const ReadingsChart = dynamic(
+  () => import('@/components/readings-chart').then(mod => mod.ReadingsChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[350px] w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    ),
+  }
+);
 
 export default function DashboardPage() {
   const auth = useAuth();
@@ -29,7 +32,7 @@ export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (!isUserLoading && !user && auth) {
       initiateAnonymousSignIn(auth);
     }
   }, [user, isUserLoading, auth]);
@@ -42,8 +45,9 @@ export default function DashboardPage() {
     );
   }, [firestore, user]);
 
-  const { data: readings, isLoading: areReadingsLoading } = useCollection<BloodPressureReading>(readingsQuery);
-  
+  const { data: readings, isLoading: areReadingsLoading } =
+    useCollection<BloodPressureReading>(readingsQuery);
+
   const isLoading = isUserLoading || (areReadingsLoading && !readings);
   const sortedReadings = readings || [];
 
@@ -78,13 +82,13 @@ export default function DashboardPage() {
                   <CardTitle>血压趋势</CardTitle>
                 </CardHeader>
                 <CardContent className="pl-0 md:pl-2">
-                   <ReadingsChart data={sortedReadings} />
+                  <ReadingsChart data={sortedReadings} />
                 </CardContent>
               </Card>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 lg:col-span-4">
-                <LatestReadingCard reading={sortedReadings[0]} />
-                <AiInsightsCard readings={sortedReadings} />
+              <LatestReadingCard reading={sortedReadings[0]} />
+              <AiInsightsCard readings={sortedReadings} />
             </div>
             <div className="lg:col-span-4">
               <Card>
