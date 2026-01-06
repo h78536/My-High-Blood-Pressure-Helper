@@ -2,7 +2,6 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'export',
   // Recommended for Next.js + Cloudflare Pages
   // https://nextjs.org/docs/pages/building-your-application/deploying/static-exports#version-skew
   reactStrictMode: true,
