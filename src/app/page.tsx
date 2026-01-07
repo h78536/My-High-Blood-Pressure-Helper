@@ -5,14 +5,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AiInsightsCard from '@/components/ai-insights-card';
 import LatestReadingCard from '@/components/latest-reading-card';
 import { EmptyState } from '@/components/empty-state';
-import { HeartPulse, Loader2 } from 'lucide-react';
+import { HeartPulse, Loader2, User as UserIcon, LogOut } from 'lucide-react';
 import { useAuth, useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
+import { getAuth, signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { BloodPressureReading } from '@/lib/definitions';
 import dynamic from 'next/dynamic';
 import { ReadingsTable } from '@/components/readings-table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
 
 const ReadingsChart = dynamic(
   () => import('@/components/readings-chart').then(mod => mod.ReadingsChart),
@@ -27,15 +39,17 @@ const ReadingsChart = dynamic(
 );
 
 export default function DashboardPage() {
-  const auth = useAuth();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const auth = useAuth();
 
   useEffect(() => {
-    if (!isUserLoading && !user && auth) {
-      initiateAnonymousSignIn(auth);
+    if (!isUserLoading && !user) {
+      router.push('/login');
     }
-  }, [user, isUserLoading, auth]);
+  }, [user, isUserLoading, router]);
+
 
   const readingsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -47,8 +61,17 @@ export default function DashboardPage() {
 
   const { data: readings, isLoading: areReadingsLoading } =
     useCollection<BloodPressureReading>(readingsQuery);
+  
+  const handleLogout = async () => {
+    if (auth) {
+      await signOut(auth);
+      router.push('/login');
+    }
+  };
 
-  const isLoading = isUserLoading || (areReadingsLoading && !readings);
+  // Combined loading state
+  const isLoading = isUserLoading || !user || (areReadingsLoading && readings === null);
+  
   const sortedReadings = readings || [];
 
   if (isLoading) {
@@ -59,6 +82,8 @@ export default function DashboardPage() {
       </div>
     );
   }
+  
+  const userInitial = user.email ? user.email.charAt(0).toUpperCase() : '?';
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -69,8 +94,32 @@ export default function DashboardPage() {
             血压监测
           </h1>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-4">
           <AddReadingDialog />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>{userInitial}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">我的账户</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>退出登录</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
