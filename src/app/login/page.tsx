@@ -46,7 +46,9 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('signin');
+  const [signInError, setSignInError] = useState<string | null>(null);
+  const [signUpError, setSignUpError] = useState<string | null>(null);
   const { toast } = useToast();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
@@ -79,7 +81,7 @@ export default function LoginPage() {
   const handleSignUp = async (data: SignUpFormValues) => {
     if (!auth) return;
     setIsLoading(true);
-    setError(null);
+    setSignUpError(null);
     try {
       await createUserWithEmailAndPassword(auth, data.email, data.password);
       toast({
@@ -92,7 +94,7 @@ export default function LoginPage() {
         err.code === 'auth/email-already-in-use'
           ? '该邮箱已被注册。'
           : '注册失败，请稍后再试。';
-      setError(message);
+      setSignUpError(message);
     } finally {
       setIsLoading(false);
     }
@@ -101,12 +103,12 @@ export default function LoginPage() {
   const handleSignIn = async (data: SignInFormValues) => {
     if (!auth) return;
     setIsLoading(true);
-    setError(null);
+    setSignInError(null);
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       router.push('/');
     } catch (err: any) {
-      setError('邮箱或密码无效。');
+      setSignInError('邮箱或密码无效。');
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +122,7 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold tracking-tight">欢迎使用血压监测</h1>
             <p className="text-muted-foreground">登录或创建一个新账户以继续</p>
         </div>
-        <Tabs defaultValue="signin" className="w-full">
+        <Tabs defaultValue="signin" className="w-full" onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">登录</TabsTrigger>
             <TabsTrigger value="signup">注册</TabsTrigger>
@@ -160,9 +162,9 @@ export default function LoginPage() {
                         </FormItem>
                       )}
                     />
-                    {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+                    {signInError && <p className="text-sm font-medium text-destructive">{signInError}</p>}
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isLoading && activeTab === 'signin' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       登录
                     </Button>
                   </form>
@@ -205,9 +207,9 @@ export default function LoginPage() {
                         </FormItem>
                       )}
                     />
-                     {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+                     {signUpError && <p className="text-sm font-medium text-destructive">{signUpError}</p>}
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                       {isLoading && activeTab === 'signup' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       创建账户
                     </Button>
                   </form>

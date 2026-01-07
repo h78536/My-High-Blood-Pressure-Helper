@@ -2,23 +2,38 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
-// IMPORTANT: This function initializes Firebase using the config from environment variables.
-export function initializeFirebase() {
+// This is a guard to make sure we're only executing this on the client
+const IS_CLIENT = typeof window !== 'undefined';
+
+interface FirebaseServices {
+  firebaseApp: FirebaseApp | null;
+  auth: Auth | null;
+  firestore: Firestore | null;
+}
+
+export function initializeFirebase(): FirebaseServices {
+  // If we're on the server, return null services to avoid build errors.
+  if (!IS_CLIENT) {
+    return {
+      firebaseApp: null,
+      auth: null,
+      firestore: null,
+    };
+  }
+  
   if (getApps().length) {
     return getSdks(getApp());
   }
   
-  // Always initialize with the config object, which now reads from process.env.
-  // This works for both local development (with .env.local) and deployed environments (like Cloudflare).
   const firebaseApp = initializeApp(firebaseConfig);
   
   return getSdks(firebaseApp);
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
+export function getSdks(firebaseApp: FirebaseApp): FirebaseServices {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
