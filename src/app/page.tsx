@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AiInsightsCard from '@/components/ai-insights-card';
 import LatestReadingCard from '@/components/latest-reading-card';
 import { EmptyState } from '@/components/empty-state';
-import { HeartPulse, Loader2, User as UserIcon, LogOut } from 'lucide-react';
+import { HeartPulse, Loader2, LogOut } from 'lucide-react';
 import { useAuth, useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { getAuth, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { BloodPressureReading } from '@/lib/definitions';
 import dynamic from 'next/dynamic';
@@ -39,16 +39,21 @@ const ReadingsChart = dynamic(
 );
 
 export default function DashboardPage() {
+  const [isClient, setIsClient] = useState(false);
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const auth = useAuth();
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (isClient && !isUserLoading && !user) {
       router.push('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, isClient]);
 
 
   const readingsQuery = useMemoFirebase(() => {
@@ -69,11 +74,8 @@ export default function DashboardPage() {
     }
   };
 
-  // Combined loading state
-  const isLoading = isUserLoading || !user || (areReadingsLoading && readings === null);
+  const isLoading = !isClient || isUserLoading || !user || (areReadingsLoading && readings === undefined);
   
-  const sortedReadings = readings || [];
-
   if (isLoading) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
@@ -83,6 +85,7 @@ export default function DashboardPage() {
     );
   }
   
+  const sortedReadings = readings || [];
   const userInitial = user.email ? user.email.charAt(0).toUpperCase() : '?';
 
   return (
