@@ -44,6 +44,7 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
+  // This state ensures the component only attempts to redirect after mounting on the client
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
     setIsClient(true);
@@ -55,11 +56,12 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
+    // Only run this effect on the client and after the initial user state is loaded
     if (isClient && !isUserLoading && user) {
       router.push('/');
     }
   }, [user, isUserLoading, router, isClient]);
-
+  
   if (!isClient || isUserLoading) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
@@ -73,17 +75,18 @@ export default function LoginPage() {
     setIsLoading(true);
     setLoginError(null);
     
+    // Shared password for simplified login
     const sharedPassword = '123456';
 
     try {
       await signInWithEmailAndPassword(auth, data.email, sharedPassword);
-      // No need to manually push, the useEffect will handle it.
+      // Successful sign-in will trigger the useEffect to redirect
     } catch (err: any) {
+      // If user does not exist, create a new account with the shared password
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
         try {
           await createUserWithEmailAndPassword(auth, data.email, sharedPassword);
-          // After creation, onAuthStateChanged in the provider will detect the new user.
-          // The useEffect hook will then trigger the redirect to '/'.
+          // Successful creation will also trigger the useEffect to redirect
           toast({
             title: '账户已创建',
             description: '已为您自动登录。',
@@ -92,6 +95,7 @@ export default function LoginPage() {
           setLoginError('无法创建您的账户，请稍后再试。');
         }
       } else {
+        // Handle other sign-in errors
         setLoginError('登录失败，请检查您的邮箱地址。');
       }
     } finally {
@@ -99,6 +103,7 @@ export default function LoginPage() {
     }
   };
   
+  // Render the login form if there is no user
   if (!user) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background px-4">
@@ -134,7 +139,7 @@ export default function LoginPage() {
                   {loginError && <p className="text-sm font-medium text-destructive">{loginError}</p>}
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    登录 / 注册
+                    登录 / 注册 
                   </Button>
                 </form>
               </Form>
