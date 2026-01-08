@@ -1,31 +1,11 @@
 'use server';
 
 import {
-  collection,
-  Timestamp,
-  addDoc,
-  getFirestore,
-} from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-import {
   BloodPressureReading,
-  BloodPressureReadingForm,
 } from './definitions';
 import { generatePersonalizedInsights } from '@/ai/flows/generate-personalized-insights';
-import { summarizeBPTrends } from '@/ai/flows/summarize-bp-trends.ts';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { initializeFirebase } from '@/firebase';
+import { summarizeBPTrends } from '@/ai/flows/summarize-bp-trends';
 
-
-// This function is no longer using firebase-admin
-export async function addReading(data: BloodPressureReadingForm, userId: string) {
-  // This is a client-side action now, but we'll keep the structure
-  // We cannot use firebase-admin on the client
-  // The logic will be handled in the component instead.
-  // This file remains for the AI-related server actions.
-}
 
 export async function getAiInsights(readings: BloodPressureReading[]) {
   if (readings.length < 5) {
@@ -36,7 +16,7 @@ export async function getAiInsights(readings: BloodPressureReading[]) {
     systolicReadings: readings.map(r => r.systolic),
     diastolicReadings: readings.map(r => r.diastolic),
     heartRates: readings.map(r => r.heartRate),
-    readingTimes: readings.map(r => new Date(r.timestamp).toISOString()),
+    readingTimes: readings.map(r => (r.timestamp as any)?.toDate ? (r.timestamp as any).toDate().toISOString() : new Date(r.timestamp).toISOString()),
   };
   
   try {

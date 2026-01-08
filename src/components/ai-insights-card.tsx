@@ -44,7 +44,6 @@ export default function AiInsightsCard({ readings }: AiInsightsCardProps) {
         title: '分析失败',
         description: '无法连接到AI服务。请检查您的API密钥或稍后再试。',
       });
-      // Optionally, still set a message in the card
       setInsights('无法生成分析。');
       setSummary('无法生成总结。');
     } finally {
