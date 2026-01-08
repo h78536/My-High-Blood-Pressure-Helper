@@ -77,7 +77,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, data.email, sharedPassword);
-      router.push('/');
+      // No need to manually push, the useEffect will handle it.
     } catch (err: any) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
         try {
