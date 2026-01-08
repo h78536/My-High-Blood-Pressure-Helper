@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -45,7 +44,6 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
-  // This state ensures that we don't check for user until the client has hydrated.
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
     setIsClient(true);
@@ -75,28 +73,25 @@ export default function LoginPage() {
     setIsLoading(true);
     setLoginError(null);
     
-    const sharedPassword = 'linghu';
+    const sharedPassword = '123456';
 
     try {
-      // First, try to sign in.
       await signInWithEmailAndPassword(auth, data.email, sharedPassword);
       router.push('/');
     } catch (err: any) {
-      // If sign-in fails because the user doesn't exist, create the account.
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
         try {
           await createUserWithEmailAndPassword(auth, data.email, sharedPassword);
+          // After creation, onAuthStateChanged in the provider will detect the new user.
+          // The useEffect hook will then trigger the redirect to '/'.
           toast({
             title: '账户已创建',
             description: '已为您自动登录。',
           });
-          // The onAuthStateChanged listener in the provider will handle the redirect.
-          router.push('/');
         } catch (creationError: any) {
           setLoginError('无法创建您的账户，请稍后再试。');
         }
       } else {
-        // Handle other sign-in errors
         setLoginError('登录失败，请检查您的邮箱地址。');
       }
     } finally {
